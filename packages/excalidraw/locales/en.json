@@ -356,6 +356,9 @@
     "movePageUpDown": "Move page up/down",
     "movePageLeftRight": "Move page left/right"
   },
+  "customFontsDialog": {
+    "title": "Custom Fonts..."
+  },
   "clearCanvasDialog": {
     "title": "Clear canvas"
   },

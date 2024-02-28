@@ -10,6 +10,7 @@ import {
   ExportIcon,
   ExportImageIcon,
   HelpIcon,
+  CustomFontsIcon,
   LoadIcon,
   MoonIcon,
   save,
@@ -26,6 +27,7 @@ import {
   actionSaveToActiveFile,
   actionShortcuts,
   actionToggleTheme,
+  actionCustomFonts,
 } from "../../actions";
 
 import "./DefaultItems.scss";
@@ -135,6 +137,25 @@ export const Help = () => {
   );
 };
 Help.displayName = "Help";
+
+export const CustomFonts = () => {
+  const { t } = useI18n();
+
+  const actionManager = useExcalidrawActionManager();
+
+  return (
+    <DropdownMenuItem
+      data-testid="config-fonts-menu-item"
+      icon={CustomFontsIcon}
+      onSelect={() => actionManager.executeAction(actionCustomFonts)}
+      shortcut=""
+      aria-label={t("customFontsDialog.title")}
+    >
+      {t("customFontsDialog.title")}
+    </DropdownMenuItem>
+  );
+};
+Help.displayName = "Coustom Fonts";
 
 export const ClearCanvas = () => {
   const { t } = useI18n();

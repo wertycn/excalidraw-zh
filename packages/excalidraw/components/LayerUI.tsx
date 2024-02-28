@@ -23,6 +23,7 @@ import { capitalizeString, isShallowEqual } from "../utils";
 import { SelectedShapeActions, ShapesSwitcher } from "./Actions";
 import { ErrorDialog } from "./ErrorDialog";
 import { ImageExportDialog } from "./ImageExportDialog";
+import { ImageExportDialog as CustomFontsDialog } from "./CustomFontsDialog";
 import { FixedSideContainer } from "./FixedSideContainer";
 import { HintViewer } from "./HintViewer";
 import { Island } from "./Island";
@@ -189,6 +190,27 @@ const LayerUI = ({
 
     return (
       <ImageExportDialog
+        elements={elements}
+        appState={appState}
+        files={files}
+        actionManager={actionManager}
+        onExportImage={onExportImage}
+        onCloseRequest={() => setAppState({ openDialog: null })}
+        name={app.getName()}
+      />
+    );
+  };
+
+  const renderCustomFontsDialog = () => {
+    console.log("appState.openDialog?.name", appState.openDialog?.name);
+    if (
+      appState.openDialog?.name !== "customFonts"
+    ) {
+      return null;
+    }
+
+    return (
+      <CustomFontsDialog
         elements={elements}
         appState={appState}
         files={files}
@@ -488,6 +510,7 @@ const LayerUI = ({
       )}
       <ActiveConfirmDialog />
       <tunnels.OverwriteConfirmDialogTunnel.Out />
+      {renderCustomFontsDialog()}
       {renderImageExportDialog()}
       {renderJSONExportDialog()}
       {appState.pasteDialog.shown && (
