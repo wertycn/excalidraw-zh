@@ -1,384 +1,154 @@
-import React, { useEffect, useRef, useState } from "react";
-
-import type { ActionManager } from "../actions/manager";
-import type { AppClassProperties, BinaryFiles, UIAppState } from "../types";
-
-import {
-  actionExportWithDarkMode,
-  actionChangeExportBackground,
-  actionChangeExportEmbedScene,
-  actionChangeExportScale,
-  actionChangeProjectName,
-} from "../actions/actionExport";
-import { probablySupportsClipboardBlob } from "../clipboard";
-import {
-  DEFAULT_EXPORT_PADDING,
-  EXPORT_IMAGE_TYPES,
-  isFirefox,
-  EXPORT_SCALES,
-} from "../constants";
-
-import { canvasToBlob } from "../data/blob";
-import { nativeFileSystemSupported } from "../data/filesystem";
-import { NonDeletedExcalidrawElement } from "../element/types";
-import { t } from "../i18n";
-import { isSomeElementSelected } from "../scene";
-import { exportToCanvas } from "../../utils/export";
-
-import { copyIcon, downloadIcon, helpIcon } from "./icons";
+import { useEffect, useState } from "react";
 import { Dialog } from "./Dialog";
-import { RadioGroup } from "./RadioGroup";
-import { Switch } from "./Switch";
-import { Tooltip } from "./Tooltip";
+import { TextField } from "./TextField";
+import DialogActionButton from "./DialogActionButton";
+import { KEYS } from "../keys";
+import { InlineIcon } from "./InlineIcon";
+import { FontFamilyNormalIcon, FontFamilyCodeIcon, FreedrawIcon } from './icons';
+import { Paragraph } from "./Paragraph";
+import { EDITOR_LS_KEYS } from '../constants';
+import { EditorLocalStorage } from "../data/EditorLocalStorage";
 
-import "./ImageExportDialog.scss";
-import { FilledButton } from "./FilledButton";
-import { cloneJSON } from "../utils";
-import { prepareElementsForExport } from "../data";
+import "./CustomFontsDialog.scss";
 
-const supportsContextFilters =
-  "filter" in document.createElement("canvas").getContext("2d")!;
+export type fontUrl = string | null;
 
-export const ErrorCanvasPreview = () => {
-  return (
-    <div>
-      <h3>{t("canvasError.cannotShowPreview")}</h3>
-      <p>
-        <span>{t("canvasError.canvasTooBig")}</span>
-      </p>
-      <em>({t("canvasError.canvasTooBigTip")})</em>
-    </div>
-  );
-};
-
-type ImageExportModalProps = {
-  appStateSnapshot: Readonly<UIAppState>;
-  elementsSnapshot: readonly NonDeletedExcalidrawElement[];
-  files: BinaryFiles;
-  actionManager: ActionManager;
-  onExportImage: AppClassProperties["onExportImage"];
-  name: string;
-};
-
-const ImageExportModal = ({
-  appStateSnapshot,
-  elementsSnapshot,
-  files,
-  actionManager,
-  onExportImage,
-  name,
-}: ImageExportModalProps) => {
-  const hasSelection = isSomeElementSelected(
-    elementsSnapshot,
-    appStateSnapshot,
-  );
-
-  const [projectName, setProjectName] = useState(name);
-  const [exportSelectionOnly, setExportSelectionOnly] = useState(hasSelection);
-  const [exportWithBackground, setExportWithBackground] = useState(
-    appStateSnapshot.exportBackground,
-  );
-  const [exportDarkMode, setExportDarkMode] = useState(
-    appStateSnapshot.exportWithDarkMode,
-  );
-  const [embedScene, setEmbedScene] = useState(
-    appStateSnapshot.exportEmbedScene,
-  );
-  const [exportScale, setExportScale] = useState(appStateSnapshot.exportScale);
-
-  const previewRef = useRef<HTMLDivElement>(null);
-  const [renderError, setRenderError] = useState<Error | null>(null);
-
-  const { exportedElements, exportingFrame } = prepareElementsForExport(
-    elementsSnapshot,
-    appStateSnapshot,
-    exportSelectionOnly,
-  );
+export const CustomFontsDialog = (props: {
+  onClose: () => void;
+}) => {
+  const [handwritingFont, setHandwritingFont] = useState<string>("https://excalidraw-zh.com/fonts/Xiaolai.woff2");
+  const [normalFont, setNormalFont] = useState<string>("");
+  const [codeFont, setCodeFont] = useState<string>("");
 
   useEffect(() => {
-    const previewNode = previewRef.current;
-    if (!previewNode) {
+    if (!EditorLocalStorage.has(EDITOR_LS_KEYS.CUSTOM_FONTS)) {
       return;
     }
-    const maxWidth = previewNode.offsetWidth;
-    const maxHeight = previewNode.offsetHeight;
-    if (!maxWidth) {
+    const customFonts = EditorLocalStorage.get(EDITOR_LS_KEYS.CUSTOM_FONTS) as {
+      handwritingFont: string | null;
+      normalFont: string | null;
+      codeFont: string | null;
+    } | null;
+    if (!customFonts) {
       return;
     }
-    exportToCanvas({
-      elements: exportedElements,
-      appState: {
-        ...appStateSnapshot,
-        name: projectName,
-        exportBackground: exportWithBackground,
-        exportWithDarkMode: exportDarkMode,
-        exportScale,
-        exportEmbedScene: embedScene,
-      },
-      files,
-      exportPadding: DEFAULT_EXPORT_PADDING,
-      maxWidthOrHeight: Math.max(maxWidth, maxHeight),
-      exportingFrame,
-    })
-      .then((canvas) => {
-        setRenderError(null);
-        // if converting to blob fails, there's some problem that will
-        // likely prevent preview and export (e.g. canvas too big)
-        return canvasToBlob(canvas)
-          .then(() => {
-            previewNode.replaceChildren(canvas);
-          })
-          .catch((e) => {
-            if (e.name === "CANVAS_POSSIBLY_TOO_BIG") {
-              throw new Error(t("canvasError.canvasTooBig"));
-            }
-            throw e;
-          });
-      })
-      .catch((error) => {
-        console.error(error);
-        setRenderError(error);
+    if (customFonts.handwritingFont) {
+      setHandwritingFont(customFonts.handwritingFont);
+    }
+    if (customFonts.normalFont) {
+      setNormalFont(customFonts.normalFont);
+    }
+    if (customFonts.codeFont) {
+      setCodeFont(customFonts.codeFont);
+    }
+  }, [])
+
+  const onConfirm = () => {
+    if (handwritingFont || normalFont || codeFont) {
+      EditorLocalStorage.set(EDITOR_LS_KEYS.CUSTOM_FONTS, {
+        handwritingFont: handwritingFont,
+        normalFont: normalFont,
+        codeFont: codeFont,
       });
-  }, [
-    appStateSnapshot,
-    files,
-    exportedElements,
-    exportingFrame,
-    projectName,
-    exportWithBackground,
-    exportDarkMode,
-    exportScale,
-    embedScene,
-  ]);
+      window.location.reload();
+      return;
+    }
+    props.onClose();
+  }
 
   return (
-    <div className="ImageExportModal">
-      <h3>{t("imageExportDialog.header")}</h3>
-      <div className="ImageExportModal__preview">
-        <div className="ImageExportModal__preview__canvas" ref={previewRef}>
-          {renderError && <ErrorCanvasPreview />}
-        </div>
-        <div className="ImageExportModal__preview__filename">
-          {!nativeFileSystemSupported && (
-            <input
-              type="text"
-              className="TextInput"
-              value={projectName}
-              style={{ width: "30ch" }}
-              onChange={(event) => {
-                setProjectName(event.target.value);
-                actionManager.executeAction(
-                  actionChangeProjectName,
-                  "ui",
-                  event.target.value,
-                );
-              }}
-            />
-          )}
-        </div>
-      </div>
-      <div className="ImageExportModal__settings">
-        <h3>{t("imageExportDialog.header")}</h3>
-        {hasSelection && (
-          <ExportSetting
-            label={t("imageExportDialog.label.onlySelected")}
-            name="exportOnlySelected"
-          >
-            <Switch
-              name="exportOnlySelected"
-              checked={exportSelectionOnly}
-              onChange={(checked) => {
-                setExportSelectionOnly(checked);
-              }}
-            />
-          </ExportSetting>
-        )}
-        <ExportSetting
-          label={t("imageExportDialog.label.withBackground")}
-          name="exportBackgroundSwitch"
-        >
-          <Switch
-            name="exportBackgroundSwitch"
-            checked={exportWithBackground}
-            onChange={(checked) => {
-              setExportWithBackground(checked);
-              actionManager.executeAction(
-                actionChangeExportBackground,
-                "ui",
-                checked,
-              );
+    <Dialog
+      onCloseRequest={() => {
+        props.onClose();
+      }}
+      title={
+        <div style={{ display: "flex" }}>
+          Custom Fonts{" "}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "0.1rem 0.5rem",
+              marginLeft: "1rem",
+              fontSize: 14,
+              borderRadius: "12px",
+              color: "#000",
+              background: "pink",
             }}
-          />
-        </ExportSetting>
-        {supportsContextFilters && (
-          <ExportSetting
-            label={t("imageExportDialog.label.darkMode")}
-            name="exportDarkModeSwitch"
           >
-            <Switch
-              name="exportDarkModeSwitch"
-              checked={exportDarkMode}
-              onChange={(checked) => {
-                setExportDarkMode(checked);
-                actionManager.executeAction(
-                  actionExportWithDarkMode,
-                  "ui",
-                  checked,
-                );
-              }}
-            />
-          </ExportSetting>
-        )}
-        <ExportSetting
-          label={t("imageExportDialog.label.embedScene")}
-          tooltip={t("imageExportDialog.tooltip.embedScene")}
-          name="exportEmbedSwitch"
-        >
-          <Switch
-            name="exportEmbedSwitch"
-            checked={embedScene}
-            onChange={(checked) => {
-              setEmbedScene(checked);
-              actionManager.executeAction(
-                actionChangeExportEmbedScene,
-                "ui",
-                checked,
-              );
-            }}
-          />
-        </ExportSetting>
-        <ExportSetting
-          label={t("imageExportDialog.label.scale")}
-          name="exportScale"
-        >
-          <RadioGroup
-            name="exportScale"
-            value={exportScale}
-            onChange={(scale) => {
-              setExportScale(scale);
-              actionManager.executeAction(actionChangeExportScale, "ui", scale);
-            }}
-            choices={EXPORT_SCALES.map((scale) => ({
-              value: scale,
-              label: `${scale}\u00d7`,
-            }))}
-          />
-        </ExportSetting>
-
-        <div className="ImageExportModal__settings__buttons">
-          <FilledButton
-            className="ImageExportModal__settings__buttons__button"
-            label={t("imageExportDialog.title.exportToPng")}
-            onClick={() =>
-              onExportImage(EXPORT_IMAGE_TYPES.png, exportedElements, {
-                exportingFrame,
-              })
-            }
-            icon={downloadIcon}
-          >
-            {t("imageExportDialog.button.exportToPng")}
-          </FilledButton>
-          <FilledButton
-            className="ImageExportModal__settings__buttons__button"
-            label={t("imageExportDialog.title.exportToSvg")}
-            onClick={() =>
-              onExportImage(EXPORT_IMAGE_TYPES.svg, exportedElements, {
-                exportingFrame,
-              })
-            }
-            icon={downloadIcon}
-          >
-            {t("imageExportDialog.button.exportToSvg")}
-          </FilledButton>
-          {(probablySupportsClipboardBlob || isFirefox) && (
-            <FilledButton
-              className="ImageExportModal__settings__buttons__button"
-              label={t("imageExportDialog.title.copyPngToClipboard")}
-              onClick={() =>
-                onExportImage(EXPORT_IMAGE_TYPES.clipboard, exportedElements, {
-                  exportingFrame,
-                })
-              }
-              icon={copyIcon}
-            >
-              {t("imageExportDialog.button.copyPngToClipboard")}
-            </FilledButton>
-          )}
+            Experimental
+          </div>
         </div>
-      </div>
-    </div>
-  );
-};
-
-type ExportSettingProps = {
-  label: string;
-  children: React.ReactNode;
-  tooltip?: string;
-  name?: string;
-};
-
-const ExportSetting = ({
-  label,
-  children,
-  tooltip,
-  name,
-}: ExportSettingProps) => {
-  return (
-    <div className="ImageExportModal__settings__setting" title={label}>
-      <label
-        htmlFor={name}
-        className="ImageExportModal__settings__setting__label"
-      >
-        {label}
-        {tooltip && (
-          <Tooltip label={tooltip} long={true}>
-            {helpIcon}
-          </Tooltip>
-        )}
-      </label>
-      <div className="ImageExportModal__settings__setting__content">
-        {children}
-      </div>
-    </div>
-  );
-};
-
-export const ImageExportDialog = ({
-  elements,
-  appState,
-  files,
-  actionManager,
-  onExportImage,
-  onCloseRequest,
-  name,
-}: {
-  appState: UIAppState;
-  elements: readonly NonDeletedExcalidrawElement[];
-  files: BinaryFiles;
-  actionManager: ActionManager;
-  onExportImage: AppClassProperties["onExportImage"];
-  onCloseRequest: () => void;
-  name: string;
-}) => {
-  // we need to take a snapshot so that the exported state can't be modified
-  // while the dialog is open
-  const [{ appStateSnapshot, elementsSnapshot }] = useState(() => {
-    return {
-      appStateSnapshot: cloneJSON(appState),
-      elementsSnapshot: cloneJSON(elements),
-    };
-  });
-
-  return (
-    <Dialog onCloseRequest={onCloseRequest} size="wide" title={false}>
-      <ImageExportModal
-        elementsSnapshot={elementsSnapshot}
-        appStateSnapshot={appStateSnapshot}
-        files={files}
-        actionManager={actionManager}
-        onExportImage={onExportImage}
-        name={name}
+      }
+      className="CustomFonts"
+      autofocus={false}
+    >
+      <Paragraph>
+        Custom fonts are an experimental feature that allows you to use your own fonts in Excalidraw.
+      </Paragraph>
+      <Paragraph>
+        You can add your own fonts by config the target font file url. Follow the the website to find more available fonts.
+        {" "}
+        <a
+          href="https://platform.openai.com/login?launch"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          Fonts
+        </a>
+      </Paragraph>
+      <Paragraph>
+        More features are coming soon.
+      </Paragraph>
+      <p />
+      <TextField
+        isRedacted={false}
+        value={handwritingFont}
+        placeholder="Paste your custom handwriting font url here, leave it empty to use default font."
+        label="Handwriting Font"
+        labelIcon={<InlineIcon icon={FreedrawIcon} />}
+        onChange={(value) => {
+          setHandwritingFont(value);
+        }}
+        selectOnRender
+        onKeyDown={(event) => event.key === KEYS.ENTER && onConfirm()}
       />
+      <p />
+      <TextField
+        isRedacted={false}
+        value={normalFont}
+        placeholder="Paste your custom normal font url here, leave it empty to use default font."
+        label="Normal Font"
+        labelIcon={<InlineIcon icon={FontFamilyNormalIcon} />}
+        onChange={(value) => {
+          setNormalFont(value);
+        }}
+        selectOnRender
+        onKeyDown={(event) => event.key === KEYS.ENTER && onConfirm()}
+      />
+      <p />
+
+      <TextField
+        isRedacted={false}
+        value={codeFont}
+        placeholder="Paste your custom code font url here, leave it empty to use default font."
+        label="Code Font"
+        labelIcon={<InlineIcon icon={FontFamilyCodeIcon} />}
+        onChange={(value) => {
+          setCodeFont(value);
+        }}
+        selectOnRender
+        onKeyDown={(event) => event.key === KEYS.ENTER && onConfirm()}
+      />
+      <p />
+      <DialogActionButton
+        label="Confirm"
+        actionType="primary"
+        isLoading={false}
+        onClick={onConfirm}
+      />
+
     </Dialog>
   );
 };

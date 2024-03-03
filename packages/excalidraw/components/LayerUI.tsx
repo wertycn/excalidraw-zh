@@ -23,7 +23,7 @@ import { capitalizeString, isShallowEqual } from "../utils";
 import { SelectedShapeActions, ShapesSwitcher } from "./Actions";
 import { ErrorDialog } from "./ErrorDialog";
 import { ImageExportDialog } from "./ImageExportDialog";
-import { ImageExportDialog as CustomFontsDialog } from "./CustomFontsDialog";
+import { CustomFontsDialog } from "./CustomFontsDialog";
 import { FixedSideContainer } from "./FixedSideContainer";
 import { HintViewer } from "./HintViewer";
 import { Island } from "./Island";
@@ -202,7 +202,6 @@ const LayerUI = ({
   };
 
   const renderCustomFontsDialog = () => {
-    console.log("appState.openDialog?.name", appState.openDialog?.name);
     if (
       appState.openDialog?.name !== "customFonts"
     ) {
@@ -211,13 +210,7 @@ const LayerUI = ({
 
     return (
       <CustomFontsDialog
-        elements={elements}
-        appState={appState}
-        files={files}
-        actionManager={actionManager}
-        onExportImage={onExportImage}
-        onCloseRequest={() => setAppState({ openDialog: null })}
-        name={app.getName()}
+        onClose={() => setAppState({ openDialog: null })}
       />
     );
   };

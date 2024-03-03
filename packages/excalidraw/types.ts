@@ -323,6 +323,11 @@ export interface AppState {
   userToFollow: UserToFollow | null;
   /** the clientIds of the users following the current user */
   followedBy: Set<SocketId>;
+  customFonts: {
+    handwriting: string | null;
+    normal: string | null;
+    code: string | null;
+  }
 }
 
 export type UIAppState = Omit<
