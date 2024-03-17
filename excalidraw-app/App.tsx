@@ -30,7 +30,6 @@ import {
 } from "../packages/excalidraw/index";
 import {
   AppState,
-  LibraryItems,
   ExcalidrawImperativeAPI,
   BinaryFiles,
   ExcalidrawInitialDataState,
@@ -64,7 +63,6 @@ import {
   loadScene,
 } from "./data";
 import {
-  getLibraryItemsFromStorage,
   importFromLocalStorage,
   importUsernameFromLocalStorage,
 } from "./data/localStorage";
@@ -82,7 +80,11 @@ import { updateStaleImageStatuses } from "./data/FileManager";
 import { newElementWith } from "../packages/excalidraw/element/mutateElement";
 import { isInitializedImageElement } from "../packages/excalidraw/element/typeChecks";
 import { loadFilesFromFirebase } from "./data/firebase";
-import { LocalData } from "./data/LocalData";
+import {
+  LibraryIndexedDBAdapter,
+  LibraryLocalStorageMigrationAdapter,
+  LocalData,
+} from "./data/LocalData";
 import { isBrowserStorageStateNewer } from "./data/tabSync";
 import clsx from "clsx";
 import { reconcileElements } from "./collab/reconciliation";
@@ -104,6 +106,7 @@ import { openConfirmModal } from "../packages/excalidraw/components/OverwriteCon
 import { OverwriteConfirmDialog } from "../packages/excalidraw/components/OverwriteConfirm/OverwriteConfirm";
 import Trans from "../packages/excalidraw/components/Trans";
 import { ShareDialog, shareDialogStateAtom } from "./share/ShareDialog";
+import CollabError, { collabErrorIndicatorAtom } from "./collab/CollabError";
 
 polyfill();
 
@@ -311,10 +314,13 @@ const ExcalidrawWrapper = () => {
   const [isCollaborating] = useAtomWithInitialValue(isCollaboratingAtom, () => {
     return isCollaborationLink(window.location.href);
   });
+  const collabError = useAtomValue(collabErrorIndicatorAtom);
 
   useHandleLibrary({
     excalidrawAPI,
-    getInitialLibraryItems: getLibraryItemsFromStorage,
+    adapter: LibraryIndexedDBAdapter,
+    // TODO maybe remove this in several months (shipped: 24-03-11)
+    migrationAdapter: LibraryLocalStorageMigrationAdapter,
   });
 
   useEffect(() => {
@@ -444,8 +450,12 @@ const ExcalidrawWrapper = () => {
           excalidrawAPI.updateScene({
             ...localDataState,
           });
-          excalidrawAPI.updateLibrary({
-            libraryItems: getLibraryItemsFromStorage(),
+          LibraryIndexedDBAdapter.load().then((data) => {
+            if (data) {
+              excalidrawAPI.updateLibrary({
+                libraryItems: data.libraryItems,
+              });
+            }
           });
           collabAPI?.setUsername(username || "");
         }
@@ -657,15 +667,6 @@ const ExcalidrawWrapper = () => {
     );
   };
 
-  const onLibraryChange = async (items: LibraryItems) => {
-    if (!items.length) {
-      localStorage.removeItem(STORAGE_KEYS.LOCAL_STORAGE_LIBRARY);
-      return;
-    }
-    const serializedItems = JSON.stringify(items);
-    localStorage.setItem(STORAGE_KEYS.LOCAL_STORAGE_LIBRARY, serializedItems);
-  };
-
   const isOffline = useAtomValue(isOfflineAtom);
 
   const onCollabDialogOpen = useCallback(
@@ -741,7 +742,6 @@ const ExcalidrawWrapper = () => {
         renderCustomStats={renderCustomStats}
         detectScroll={false}
         handleKeyboardGlobally={true}
-        onLibraryChange={onLibraryChange}
         autoFocus={true}
         theme={theme}
         renderTopRightUI={(isMobile) => {
@@ -749,12 +749,15 @@ const ExcalidrawWrapper = () => {
             return null;
           }
           return (
-            <LiveCollaborationTrigger
-              isCollaborating={isCollaborating}
-              onSelect={() =>
-                setShareDialogState({ isOpen: true, type: "share" })
-              }
-            />
+            <div className="top-right-ui">
+              {collabError.message && <CollabError collabError={collabError} />}
+              <LiveCollaborationTrigger
+                isCollaborating={isCollaborating}
+                onSelect={() =>
+                  setShareDialogState({ isOpen: true, type: "share" })
+                }
+              />
+            </div>
           );
         }}
       >
