@@ -10,50 +10,55 @@ import { EDITOR_LS_KEYS } from '../constants';
 import { EditorLocalStorage } from "../data/EditorLocalStorage";
 
 import "./CustomFontsDialog.scss";
+import { CustomFonts, preloadCustomFonts, getCustomFonts, getDefaultFonts } from "../font";
 
 export type fontUrl = string | null;
 
 export const CustomFontsDialog = (props: {
   onClose: () => void;
 }) => {
-  const [handwritingFont, setHandwritingFont] = useState<string>("https://excalidraw-zh.com/fonts/Xiaolai.woff2");
-  const [normalFont, setNormalFont] = useState<string>("");
-  const [codeFont, setCodeFont] = useState<string>("");
+
+  const [handwriting, setHandwriting] = useState<string>("https://excalidraw-zh.com/fonts/Xiaolai.woff2");
+  const [normal, setNormal] = useState<string>("");
+  const [code, setCode] = useState<string>("");
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!EditorLocalStorage.has(EDITOR_LS_KEYS.CUSTOM_FONTS)) {
-      return;
+    const customFonts = getCustomFonts() || getDefaultFonts();
+    if (customFonts.handwriting) {
+      setHandwriting(customFonts.handwriting);
     }
-    const customFonts = EditorLocalStorage.get(EDITOR_LS_KEYS.CUSTOM_FONTS) as {
-      handwritingFont: string | null;
-      normalFont: string | null;
-      codeFont: string | null;
-    } | null;
-    if (!customFonts) {
-      return;
+    if (customFonts.normal) {
+      setNormal(customFonts.normal);
     }
-    if (customFonts.handwritingFont) {
-      setHandwritingFont(customFonts.handwritingFont);
+    if (customFonts.code) {
+      setCode(customFonts.code);
     }
-    if (customFonts.normalFont) {
-      setNormalFont(customFonts.normalFont);
-    }
-    if (customFonts.codeFont) {
-      setCodeFont(customFonts.codeFont);
-    }
-  }, [])
+  }, []);
 
   const onConfirm = () => {
-    if (handwritingFont || normalFont || codeFont) {
-      EditorLocalStorage.set(EDITOR_LS_KEYS.CUSTOM_FONTS, {
-        handwritingFont: handwritingFont,
-        normalFont: normalFont,
-        codeFont: codeFont,
-      });
+    if (!handwriting && !normal && !code) {
+      EditorLocalStorage.delete(EDITOR_LS_KEYS.CUSTOM_FONTS);
       window.location.reload();
       return;
     }
-    props.onClose();
+    const customFonts = {
+      handwriting,
+      normal,
+      code,
+    } as CustomFonts;   
+    setIsSaving(true);
+    preloadCustomFonts(customFonts).then(() => {
+      setIsSaving(false);
+      EditorLocalStorage.set(EDITOR_LS_KEYS.CUSTOM_FONTS, customFonts);
+      console.log("Fonts loaded");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    }).catch(error => {
+      setIsSaving(false);
+      console.error(error);
+    });
   }
 
   return (
@@ -104,12 +109,12 @@ export const CustomFontsDialog = (props: {
       <p />
       <TextField
         isRedacted={false}
-        value={handwritingFont}
+        value={handwriting}
         placeholder="Paste your custom handwriting font url here, leave it empty to use default font."
         label="Handwriting Font"
         labelIcon={<InlineIcon icon={FreedrawIcon} />}
         onChange={(value) => {
-          setHandwritingFont(value);
+          setHandwriting(value);
         }}
         selectOnRender
         onKeyDown={(event) => event.key === KEYS.ENTER && onConfirm()}
@@ -117,12 +122,12 @@ export const CustomFontsDialog = (props: {
       <p />
       <TextField
         isRedacted={false}
-        value={normalFont}
+        value={normal}
         placeholder="Paste your custom normal font url here, leave it empty to use default font."
         label="Normal Font"
         labelIcon={<InlineIcon icon={FontFamilyNormalIcon} />}
         onChange={(value) => {
-          setNormalFont(value);
+          setNormal(value);
         }}
         selectOnRender
         onKeyDown={(event) => event.key === KEYS.ENTER && onConfirm()}
@@ -131,12 +136,12 @@ export const CustomFontsDialog = (props: {
 
       <TextField
         isRedacted={false}
-        value={codeFont}
+        value={code}
         placeholder="Paste your custom code font url here, leave it empty to use default font."
         label="Code Font"
         labelIcon={<InlineIcon icon={FontFamilyCodeIcon} />}
         onChange={(value) => {
-          setCodeFont(value);
+          setCode(value);
         }}
         selectOnRender
         onKeyDown={(event) => event.key === KEYS.ENTER && onConfirm()}
@@ -145,7 +150,7 @@ export const CustomFontsDialog = (props: {
       <DialogActionButton
         label="Confirm"
         actionType="primary"
-        isLoading={false}
+        isLoading={isSaving}
         onClick={onConfirm}
       />
 

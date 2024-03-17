@@ -3,8 +3,7 @@ import React, { useEffect, useState } from "react";
 import { LoadingMessage } from "./LoadingMessage";
 import { defaultLang, Language, languages, setLanguage } from "../i18n";
 import { Theme } from "../element/types";
-import { EDITOR_LS_KEYS } from '../constants';
-import { EditorLocalStorage } from "../data/EditorLocalStorage";
+import { preloadCustomFonts, getCustomFonts } from "../font";
 
 interface Props {
   langCode: Language["code"];
@@ -13,41 +12,38 @@ interface Props {
 }
 
 const loadCustomFonts = async () => {
-  const customFonts = EditorLocalStorage.get(EDITOR_LS_KEYS.CUSTOM_FONTS) as {
-    handwritingFont: string | null;
-    normalFont: string | null;
-    codeFont: string | null;
-  } | null;
+  const customFonts = getCustomFonts();
   if (!customFonts) {
     return;
   }
-  if (customFonts.handwritingFont) {
+  await preloadCustomFonts(customFonts);
+  if (customFonts.handwriting) {
     const fontFaceRule = `
       @font-face {
         font-family: 'Virgil';
-        src: url('${customFonts.handwritingFont}') format('woff2');
+        src: url('${customFonts.handwriting}') format('woff2');
       }
     `;
     const styleElement = document.createElement('style');
     styleElement.textContent = fontFaceRule;
     document.head.appendChild(styleElement);
   }
-  if (customFonts.normalFont) {
+  if (customFonts.normal) {
     const fontFaceRule = `
       @font-face {
         font-family: 'Helvetica';
-        src: url('${customFonts.normalFont}') format('woff2');
+        src: url('${customFonts.normal}') format('woff2');
       }
     `;
     const styleElement = document.createElement('style');
     styleElement.textContent = fontFaceRule;
     document.head.appendChild(styleElement);
   }
-  if (customFonts.codeFont) {
+  if (customFonts.code) {
     const fontFaceRule = `
       @font-face {
         font-family: 'Cascadia';
-        src: url('${customFonts.codeFont}') format('woff2');
+        src: url('${customFonts.code}') format('woff2');
       }
     `;
     const styleElement = document.createElement('style');
