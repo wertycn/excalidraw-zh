@@ -8,6 +8,7 @@ import { FontFamilyNormalIcon, FontFamilyCodeIcon, FreedrawIcon } from './icons'
 import { Paragraph } from "./Paragraph";
 import { EDITOR_LS_KEYS } from '../constants';
 import { EditorLocalStorage } from "../data/EditorLocalStorage";
+import { useI18n } from "../i18n";
 
 import "./CustomFontsDialog.scss";
 import { CustomFonts, preloadCustomFonts, getCustomFonts, getDefaultFonts } from "../font";
@@ -17,6 +18,7 @@ export type fontUrl = string | null;
 export const CustomFontsDialog = (props: {
   onClose: () => void;
 }) => {
+  const { t } = useI18n();
 
   const [handwriting, setHandwriting] = useState<string>("https://excalidraw-zh.com/fonts/Xiaolai.woff2");
   const [normal, setNormal] = useState<string>("");
@@ -68,7 +70,7 @@ export const CustomFontsDialog = (props: {
       }}
       title={
         <div style={{ display: "flex" }}>
-          Custom Fonts{" "}
+          {`${t("customFontsDialog.subTitle")}  `}
           <div
             style={{
               display: "flex",
@@ -90,28 +92,27 @@ export const CustomFontsDialog = (props: {
       autofocus={false}
     >
       <Paragraph>
-        Custom fonts are an experimental feature that allows you to use your own fonts in Excalidraw.
+        {`${t('customFontsDialog.paragraph1')}`}
       </Paragraph>
-      <Paragraph>
-        You can add your own fonts by config the target font file url. Follow the the website to find more available fonts.
-        {" "}
+      {/* <Paragraph>
+        {`${t('customFontsDialog.paragraph2')}`}
         <a
           href="https://platform.openai.com/login?launch"
           rel="noopener noreferrer"
           target="_blank"
         >
-          Fonts
+          {`${t('customFontsDialog.paragraph2Appendix')}`}
         </a>
-      </Paragraph>
+      </Paragraph> */}
       <Paragraph>
-        More features are coming soon.
+        {`${t('customFontsDialog.paragraph3')}`}
       </Paragraph>
       <p />
       <TextField
         isRedacted={false}
         value={handwriting}
-        placeholder="Paste your custom handwriting font url here, leave it empty to use default font."
-        label="Handwriting Font"
+        placeholder={`${t('customFontsDialog.handwriting.placeholder')}`}
+        label={`${t('customFontsDialog.handwriting.label')}`}
         labelIcon={<InlineIcon icon={FreedrawIcon} />}
         onChange={(value) => {
           setHandwriting(value);
@@ -123,8 +124,8 @@ export const CustomFontsDialog = (props: {
       <TextField
         isRedacted={false}
         value={normal}
-        placeholder="Paste your custom normal font url here, leave it empty to use default font."
-        label="Normal Font"
+        placeholder={`${t('customFontsDialog.normal.placeholder')}`}
+        label={`${t('customFontsDialog.normal.label')}`}
         labelIcon={<InlineIcon icon={FontFamilyNormalIcon} />}
         onChange={(value) => {
           setNormal(value);
@@ -137,8 +138,8 @@ export const CustomFontsDialog = (props: {
       <TextField
         isRedacted={false}
         value={code}
-        placeholder="Paste your custom code font url here, leave it empty to use default font."
-        label="Code Font"
+        placeholder={`${t('customFontsDialog.code.placeholder')}`}
+        label={`${t('customFontsDialog.code.label')}`}
         labelIcon={<InlineIcon icon={FontFamilyCodeIcon} />}
         onChange={(value) => {
           setCode(value);
@@ -148,7 +149,7 @@ export const CustomFontsDialog = (props: {
       />
       <p />
       <DialogActionButton
-        label="Confirm"
+        label={t("customFontsDialog.confirm")}
         actionType="primary"
         isLoading={isSaving}
         onClick={onConfirm}
