@@ -7,10 +7,10 @@
 
 **如何使用** 
 1. 在配置中，配置自己喜欢的字体，字体格式为woff2。
- ![guide-custom-fonts](./guide-custom-fonts.png)
+ ![guide-custom-fonts](../readme-zh/guide-custom-fonts.png)
 
 2. 保存配置，系统会自动尝试加载字体，加载成功后，自动重新加载站点。
- ![setting-custom-fonts](./setting-custom-fonts.png)
+ ![setting-custom-fonts](../readme-zh/setting-custom-fonts.png)
 
 3. 尽情使用自己的字体。
- ![setting-custom-fonts](./use-custom-fonts.png)
+ ![setting-custom-fonts](../readme-zh/use-custom-fonts.png)
