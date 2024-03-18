@@ -11,8 +11,8 @@ export type CustomFonts = {
 export const getDefaultFonts = () : CustomFonts => {
     return {
         handwriting: "https://excalidraw-zh.com/fonts/Xiaolai.woff2",
-        normal: "",
-        code: "",
+        normal: null,
+        code: null,
     }
 }
 
@@ -30,7 +30,10 @@ export const saveCustomFonts = (customFonts: CustomFonts) => {
 
 export const getCustomFonts = () => {
     const customFonts = EditorLocalStorage.get(EDITOR_LS_KEYS.CUSTOM_FONTS) as CustomFonts | null;
-    if (customFonts == null || customFonts.handwriting == null || customFonts.normal == null || customFonts.code == null) {
+    if (customFonts == null) {
+        return getDefaultFonts();
+    }
+    if (customFonts.handwriting == null || customFonts.normal == null || customFonts.code == null) {
         return null;
     }
     return customFonts;
