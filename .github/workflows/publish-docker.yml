@@ -24,6 +24,7 @@ jobs:
           npm install -g cross-env
           yarn
           yarn build
+          pwd
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
