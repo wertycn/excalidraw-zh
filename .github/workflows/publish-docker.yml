@@ -25,6 +25,8 @@ jobs:
           yarn
           yarn build
           pwd
+          ls
+          ls build
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
