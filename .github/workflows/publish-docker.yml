@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - release
-
 jobs:
   publish-docker:
     runs-on: ubuntu-latest
@@ -23,5 +22,3 @@ jobs:
           context: .
           push: true
           tags: debugicu/excalidraw_zh:latest
-
-
